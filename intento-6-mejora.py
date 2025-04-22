@@ -6,7 +6,7 @@ y = 0
 
 os.system("clear")
 
-# Carga o crea la lista de campus desde archivo
+
 if os.path.exists("campus_lista.txt"):
     with open("campus_lista.txt", "r") as f:
         campus = [line.strip() for line in f if line.strip()]
