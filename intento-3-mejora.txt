@@ -1,0 +1,131 @@
+import json
+import random
+
+class Dispositivo:
+    def __init__(self, tipo, nombre, jerarquia, servicios=None, ip=None):
+        self.tipo = tipo
+        self.nombre = nombre
+        self.jerarquia = jerarquia
+        self.servicios = servicios if servicios else []
+        self.ip = ip
+
+    def agregar_servicio(self, servicio):
+        if servicio not in self.servicios:
+            self.servicios.append(servicio)
+
+    def __str__(self):
+        return f"{self.tipo} - {self.nombre} ({', '.join(self.servicios)}) - Jerarquía: {self.jerarquia} - IP: {self.ip}"
+
+
+class Campus:
+    def __init__(self, nombre):
+        self.nombre = nombre
+        self.dispositivos = []
+
+    def agregar_dispositivo(self, dispositivo):
+        self.dispositivos.append(dispositivo)
+
+    def mostrar_dispositivos(self):
+        for dispositivo in self.dispositivos:
+            print(dispositivo)
+
+
+def generar_ip(subred, ip_asignadas):
+    base_ip = subred.split('.')[0:3]
+    rango_inicio = 1
+    rango_final = 254
+
+    while True:
+        ip_generada = f"{'.'.join(base_ip)}.{random.randint(rango_inicio, rango_final)}"
+        if ip_generada not in ip_asignadas:
+            ip_asignadas.add(ip_generada)
+            return ip_generada
+
+
+def guardar_datos(campus_dict):
+    with open('datos_red.json', 'w') as file:
+        json.dump(campus_dict, file, default=str, indent=4)
+
+
+def cargar_datos():
+    try:
+        with open('datos_red.json', 'r') as file:
+            campus_dict = json.load(file)
+        return campus_dict
+    except FileNotFoundError:
+        return {}
+
+
+def agregar_campus(campus_dict):
+    nombre = input("Ingrese el nombre del nuevo campus: ")
+    if nombre in campus_dict:
+        print("Este campus ya existe.")
+    else:
+        campus_dict[nombre] = {"dispositivos": []}
+        print(f"Campus {nombre} agregado con éxito.")
+
+
+def agregar_dispositivo(campus_dict, ip_asignadas):
+    campus_nombre = input("Elija el campus donde agregar el dispositivo: ")
+    if campus_nombre not in campus_dict:
+        print("Campus no encontrado.")
+        return
+    
+    tipo = input("Elija el tipo de dispositivo (Router/Switch/Switch multicapa): ")
+    nombre = input("Ingrese el nombre del dispositivo: ")
+    jerarquia = input("Elija la jerarquía (Nucleo/Acceso/Distribucion): ")
+
+    ip = generar_ip("192.168.1.0/24", ip_asignadas)
+
+    dispositivo = Dispositivo(tipo, nombre, jerarquia, ip=ip)
+
+    while True:
+        print("Elija un servicio para el dispositivo (Datos/VLAN/Trunking/Enrutamiento/Salir): ")
+        servicio = input("Servicio: ").strip()
+        if servicio == "Salir":
+            break
+        dispositivo.agregar_servicio(servicio)
+
+    campus_dict[campus_nombre]["dispositivos"].append({
+        "tipo": dispositivo.tipo,
+        "nombre": dispositivo.nombre,
+        "jerarquia": dispositivo.jerarquia,
+        "servicios": dispositivo.servicios,
+        "ip": dispositivo.ip
+    })
+    print(f"Dispositivo {dispositivo.nombre} agregado con éxito en {campus_nombre} con IP: {dispositivo.ip}")
+
+
+def main():
+    campus_dict = cargar_datos()
+    ip_asignadas = set()
+
+    while True:
+        print("\nMenú de opciones:")
+        print("1. Ver los campus y dispositivos.")
+        print("2. Añadir campus.")
+        print("3. Añadir dispositivo.")
+        print("4. Salir.")
+        
+        seleccion = input("Elija una opción: ")
+
+        if seleccion == "1":
+            for campus_nombre, datos in campus_dict.items():
+                print(f"\nCampus: {campus_nombre}")
+                for dispositivo in datos["dispositivos"]:
+                    print(f"- {dispositivo['nombre']} ({dispositivo['tipo']}) IP: {dispositivo['ip']}")
+        
+        elif seleccion == "2":
+            agregar_campus(campus_dict)
+        
+        elif seleccion == "3":
+            agregar_dispositivo(campus_dict, ip_asignadas)
+        
+        elif seleccion == "4":
+            guardar_datos(campus_dict)
+            print("Datos guardados y programa terminado.")
+            break
+
+
+if __name__ == "__main__":
+    main()
